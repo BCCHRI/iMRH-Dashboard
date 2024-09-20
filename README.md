@@ -1,2 +1,3 @@
 # iMRH-Dashboard
-iMRH Dashboard
+Repo with code for Shiny dashbord 
+
