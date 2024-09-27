@@ -16,7 +16,7 @@ tbl(db, 'scan_data') |>
 # 1. Dissolved phase scans 
 tbl(db, 'scan_data') |> 
   filter(dummy_scan == 0) |> 
-  filter(sequence_name == "Xe - Dissolved Phase (4pt; JW)") |> 
+  filter(sequence_name %in% c("Xe - Dissolved Phase (4pt; JW)", "Xe - DWCS (diffusion; JW)")) |> 
   group_by(sequence_name) |> 
   count()
 
@@ -32,4 +32,11 @@ tbl(db, 'scan_data') |>
   group_by(sequence_name) |> 
   count()
 
-# 3. Number of participants 
+# 3. Number of participants (staratifed by CF)
+tbl(db, 'baseline_data') |> 
+  group_by(resp_disease) |> 
+  count() |> 
+  collect() |> 
+  ungroup() |> 
+  summarise(total = sum(n))
+  

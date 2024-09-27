@@ -113,6 +113,58 @@ ProcessBaselineData <- function(data, data_dict_path){
   return(baseline_data)
 }
 
+#' Process Study Components
+#'
+#' @description Cleans and processes study component data from REDCap, mapping numeric component values 
+#' to descriptive names and reshaping the data.
+#'
+#' @param data A tibble containing raw REDCap data, including study components and component IDs.
+#' @return A tibble with `record_id`, `visit_number`, `component_study_number`, 
+#' `component_study_name`, and `component_study_id`.
+#'
+#' @details
+#' This function:
+#' - Converts numeric component columns to labeled factors.
+#' - Pivots the component columns from wide to long format.
+#' - Joins component names with their respective study IDs.
+#'
+#' @example
+#' \dontrun{
+#'   raw_data <- dbReadTable(db, "raw_data")
+#'   processed_data <- ProcessStudyComponents(raw_data)
+#' }
+#'
+#' @export
+ProcessStudyComponents <- function(data){
+
+  study_names <- data |> 
+    select(
+      record_id,visit_number = redcap_repeat_instance,
+      comp1, comp2, comp3, comp4
+    ) |> 
+    mutate(
+      across(c(comp1,comp2,comp3,comp4),
+      ~ factor(.x, 
+        levels = 1:8,
+        labels = c( "varMRI","TriMRI","imPCR","CANUCK","CHD-MRI","Cross-MRI","Var-MRI-PCD","IEI-MRI")
+    ))) |> 
+    pivot_longer(cols = contains("comp"), names_to = "component_study_number",values_to = "component_study_name") |> 
+    drop_na(component_study_name) |> 
+    mutate(component_study_number = factor(component_study_number,labels = c("comp_number1","comp_number2","comp_number3")))
+    
+  study_names_combined <- data |> 
+    select(
+      record_id, visit_number = redcap_repeat_instance,
+      comp_number1, comp_number2, comp_number3, comp_number4) |> 
+    mutate(across(contains("comp"), as.character)) |> 
+    pivot_longer(cols = contains("comp"), names_to = "component_study_number", values_to = "component_study_id") |> 
+    drop_na(component_study_id) |> 
+    right_join(study_names, by = join_by(record_id, visit_number, component_study_number)) |> 
+    select(record_id,visit_number, component_study_number,component_study_name,component_study_id)
+
+  return(study_names_combined)
+}
+
 #' Process and export scan data
 #'
 #' @description Extracts and processes MRI scan data from REDCap.
@@ -277,3 +329,4 @@ WriteToSQLite <- function(data, db_path, table_name){
   dbWriteTable(con, table_name, data, overwrite = TRUE, row.names = FALSE)
   dbDisconnect(con)
 }
+
