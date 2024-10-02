@@ -13,8 +13,14 @@ packages <- c(
   'RSQLite',
   'tidyverse',
   'REDCapR',
-  'glue'
+  'glue',
+  'ggthemes',
+  'scales',
+  'kableExtra',
+  'gtsummary',
+  'lubridate'
+
 )
 
 # Install packages
-install.packages(packages, repos = 'https://cloud.r-project.org/')
+install.packages(packages)
