@@ -1,3 +1,6 @@
+#####################
+# Libraries
+#####################
 library(shiny)
 library(bslib)
 library(DBI)
@@ -27,8 +30,8 @@ create_db_connection <- function() {
 
 # Define your credentials
 credentials <- data.frame(
-  user = c("user1", "user2"),
-  password = c("pass1", "pass2"),
+  user = c("admin", "guest"),
+  password = c("kiwvyt", "xumnyJ"),
   stringsAsFactors = FALSE
 )
 

@@ -20,7 +20,6 @@ packages <- c(
   'gtsummary',
   'lubridate',
   'shinymanager'
-
 )
 
 # Install packages
