@@ -18,7 +18,8 @@ packages <- c(
   'scales',
   'kableExtra',
   'gtsummary',
-  'lubridate'
+  'lubridate',
+  'shinymanager'
 
 )
 

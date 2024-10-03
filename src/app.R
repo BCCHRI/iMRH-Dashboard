@@ -7,6 +7,7 @@ library(readr)
 library(tidyr)
 library(shinyjs)  
 library(plotly)   
+library(shinymanager)
 
 source('utils.R')
 source("init_sql_db.R")
@@ -24,17 +25,20 @@ create_db_connection <- function() {
   })
 }
 
-ui <- fluidPage(
-  useShinyjs(),
-  theme = bs_theme(bootswatch = "flatly", version = 5),  
-  titlePanel("iMRH Dashboard"),
-  
-  # Toggle button for the navbar
-  actionButton("toggle", " Menu"),
-  
-  # Collapsible navbar
-  conditionalPanel(
-    condition = "input.toggle > 0",
+# Define your credentials
+credentials <- data.frame(
+  user = c("user1", "user2"),
+  password = c("pass1", "pass2"),
+  stringsAsFactors = FALSE
+)
+
+# Secure the application
+ui <- secure_app(
+  fluidPage(
+    useShinyjs(),
+    theme = bs_theme(bootswatch = "flatly", version = 5),  
+    titlePanel("iMRH Dashboard"),
+    
     navbarPage("", id = "all_tabs",
       tabPanel("Database Summary",
                fluidRow(
@@ -74,17 +78,18 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+  # Call secure_server() inside the server function
+  res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
+  
+  output$auth_output <- renderPrint({
+    reactiveValuesToList(res_auth)
+  })
+  
   ###################################
   # Database connection
   con <- create_db_connection()
-  
-  observeEvent(input$toggle, {
-    if (input$toggle %% 2 == 1) {
-      shinyjs::show("all_tabs")  
-    } else {
-      shinyjs::hide("all_tabs")  
-    }
-  })
   
   ###################################
   # Data refresh 
