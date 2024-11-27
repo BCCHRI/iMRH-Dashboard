@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  imrh_dashboard:
+    image: imrh_shiny:latest  
+    container_name: imrh_dashboard
+    restart: always
+    ports:
+      - "3838:3838" 
