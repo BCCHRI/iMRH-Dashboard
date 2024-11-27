@@ -244,7 +244,8 @@ ProcessScanData <- function(data, data_dict_path){
              case_when(
                str_detect(sequence_name,"Xe") & (xe == "No" | is.na(xe)) ~ 1,
                TRUE ~ 0)) |> 
-    ungroup()
+    ungroup() |>
+    filter(dummy_scan == 0)
   
   return(scan_data)
 }

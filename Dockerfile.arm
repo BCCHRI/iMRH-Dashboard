@@ -28,11 +28,12 @@ WORKDIR /home/app/
 COPY src/ /home/app/src/
 COPY data/ /home/app/data/
 
-# Install necessary R packages from Raspberry Pi repository
-RUN R -e "install.packages(c('Rcpp', 'later', 'fs', 'R6', 'Cairo', 'httpuv', 'mime', 'jsonlite', 'digest', 'htmltools', 'xtable', 'sourcetools', 'shiny', 'rmarkdown'), repos=$REPO)"
+# Use the R4Pi repository to ensure compatibility for ARM devices like Raspberry Pi
+ARG REPO="https://packagemanager.rstudio.com/all/__linux__/bionic/latest"
 
-# Run additional package installation script if needed
-RUN R -e "source('src/install_packages.R')"
+# Install all required R packages in one step
+RUN R -e "install.packages(c('Rcpp', 'later', 'fs', 'R6', 'Cairo', 'httpuv', 'mime', 'jsonlite', 'digest', 'htmltools', 'xtable', 'sourcetools', 'shiny', 'rmarkdown', 'bslib', 'DBI', 'dplyr', 'gt', 'readr', 'tidyr', 'shinyjs', 'plotly', 'DT', 'RSQLite', 'tidyverse', 'REDCapR', 'glue', 'ggthemes', 'scales', 'kableExtra', 'gtsummary', 'lubridate', 'shinymanager'), repos='$REPO')"
+
 
 # Expose port for Shiny
 EXPOSE 3838
