@@ -17,5 +17,5 @@ COPY data/ /home/app/data/
 RUN R -e "source('src/utils/install_packages.R')"
 
 EXPOSE 3838
-CMD ["R", "-e", "shiny::runApp('app.R', host='0.0.0.0', port=3838)"]
+CMD ["R", "-e", "shiny::runApp('src/app.R', host='0.0.0.0', port=3838)"]
 

@@ -20,7 +20,8 @@ packages <- c(
   'gtsummary',
   'lubridate',
   'shinymanager',
-  'yaml'
+  'yaml',
+  'janitor'
 )
 
 # Install packages

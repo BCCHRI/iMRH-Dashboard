@@ -4,3 +4,4 @@ src/iMRHToken
 .Rproj.user
 *.Rhistory
 src/config/credentials.yaml
+src/config/config.yaml
