@@ -4,13 +4,13 @@
 #####################
 # init sql db
 #####################
-source('db_utils.R')
+source('utils/db_utils.R')
 # constants
 init_sql_db <- function(){
   TOKEN_PATH <- "iMRHToken"
   URI <- "https://rc.bcchr.ca/redcap/api/"
-  DATA_DICT_PATH <- 'docs/data_dictionary.xlsx'
-  DB_PATH <- "../../data/iMRH_db.sqlite"
+  DATA_DICT_PATH <- 'config/data_dictionary.csv'
+  DB_PATH <- "../data/iMRH.sqlite"
   # Read redcap data
   print("----------- FETCHING LATEST DATA -----------")
   raw_data <- ReadREDCapData(TOKEN_PATH, URI)
@@ -32,7 +32,7 @@ init_sql_db <- function(){
 
 
 create_db_connection <- function() {
-  DB_PATH <- "../../data/iMRH_db.sqlite"
+  DB_PATH <- "../data/iMRH.sqlite"
   tryCatch({
     con <- dbConnect(RSQLite::SQLite(), DB_PATH)
     return(con)

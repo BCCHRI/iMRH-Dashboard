@@ -28,7 +28,7 @@ ReadREDCapData <- function(token_path, uri){
 ProcessBaselineData <- function(data, data_dict_path){
   # get data dict 
   baseline_vars <- 
-    readxl::read_excel(data_dict_path) |> 
+    read_csv(data_dict_path) |> 
     janitor::clean_names() |> 
     filter(form_name %in% c("demographics","medical_history")) 
   
@@ -127,7 +127,7 @@ ProcessScanData <- function(data, data_dict_path){
   
   # get data dict 
   scan_vars <- 
-    readxl::read_excel(data_dict_path)  |> 
+    read_csv(data_dict_path)  |> 
     janitor::clean_names() |> 
     filter(form_name %in% c("scans")) |> 
     filter(!str_detect(variable_field_name,"notes")) |> 

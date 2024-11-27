@@ -12,9 +12,16 @@ library(yaml)
 source('utils/utils.R')
 source("utils/init_sql_db.R")
 
-config <- yaml::read_yaml("../config/config.yml")
-credentials <- as.data.frame(config$credentials, stringsAsFactors = FALSE)
+######################################################################
+# sort credentials and load database
+config <- yaml::read_yaml("config/config.yaml")
+credentials <- tibble(
+  user = sapply(config$credentials, function(x) x$user), 
+  password = sapply(config$credentials, function(x) x$password)
+)
+
 init_sql_db()
+###################################
 
 server <- function(input, output, session) {
 
