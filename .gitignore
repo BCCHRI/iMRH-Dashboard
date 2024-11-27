@@ -3,3 +3,4 @@ src/iMRHToken
 *.DS_Store
 .Rproj.user
 *.Rhistory
+src/config/credentials.yaml
