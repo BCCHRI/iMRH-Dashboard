@@ -5,13 +5,12 @@ library(plotly)
 library(DT)
 library(shinymanager)
 
-ui <- secure_app(
-  fluidPage(
+ui <- fluidPage(
     useShinyjs(),
     theme = bs_theme(bootswatch = "flatly", version = 5),  
     titlePanel("iMRH Dashboard"),
-    
     navbarPage("", id = "all_tabs",
+      header = actionButton("refreshData", "Refresh Data"),
       tabPanel("Database Summary",
                fluidRow(
                  h2("Summary Table"),
@@ -47,4 +46,3 @@ ui <- secure_app(
       )
     )
   )
-)

@@ -7,48 +7,33 @@ library(readr)
 library(tidyr)
 library(shinyjs)  
 library(plotly)   
-library(shinymanager)
 library(yaml)
+library(stringr)
 source('utils/utils.R')
 source("utils/init_sql_db.R")
 
 ######################################################################
-# sort credentials and load database
-config <- yaml::read_yaml("config/config.yaml")
-credentials <- tibble(
-  user = sapply(config$credentials, function(x) x$user), 
-  password = sapply(config$credentials, function(x) x$password)
-)
-
 init_sql_db()
 ###################################
 
 server <- function(input, output, session) {
-
-  res_auth <- secure_server(
-    check_credentials = check_credentials(credentials)
-  )
-  
-  output$auth_output <- renderPrint({
-    reactiveValuesToList(res_auth)
-  })
-  
   ###################################
   # Database connection
   con <- create_db_connection()
   
   ###################################
   # Data refresh 
-  AutoRefreshData <- reactivePoll(3600000, session,
-                                  checkFunc = function() {
-                                    return(Sys.time())
-                                  },
-                                  valueFunc = function() {
-                                    scan_data <- dbReadTable(con, "scan_data")
-                                    baseline_data <- dbReadTable(con, "baseline_data")
-                                    list(scan_data = scan_data, baseline_data = baseline_data)
-                                  }
-  )
+  autoInvalidate <- reactiveTimer(3600000, session)
+  AutoRefreshData <- reactive({
+    autoInvalidate()         # invalidate every 1h 
+    input$refreshData        # invalidate on click
+
+    scan_data     <- dbReadTable(con, "scan_data")
+    baseline_data <- dbReadTable(con, "baseline_data")
+
+    list(scan_data = scan_data,
+         baseline_data = baseline_data)
+  })
   
   ###################################
   # Reactive expressions 
@@ -68,14 +53,21 @@ server <- function(input, output, session) {
         scan_data %>% 
         filter(record_id %in% subset_ids$record_id)
     }
-    if (input$subsetVarOverview == "Respiratory Disease" && !is.null(input$diseaseSubsets) && length(input$diseaseSubsets) > 0) {
-      disease_ids <- 
-        baseline_data %>% 
-        filter(resp_disease %in% input$diseaseSubsets)
+    if (input$subsetVarOverview == "Respiratory Disease" &&
+        !is.null(input$diseaseSubsets) &&
+        length(input$diseaseSubsets) > 0) {
       
-      subset_data <- 
-        subset_data %>% 
-        filter(record_id %in% disease_ids$record_id)
+      # build a regex to match any selected label as a whole word
+      pat <- paste0("\\b(", paste(input$diseaseSubsets, collapse = "|"), ")\\b")
+      
+      # find all IDs whose multi‑label string contains at least one selection
+      disease_ids <- baseline_data %>%
+        filter(str_detect(resp_disease, pat)) %>%
+        pull(record_id)
+      
+      # keep only those records
+      subset_data <- subset_data %>%
+        filter(record_id %in% disease_ids)
     }
     
     subset_data
@@ -119,12 +111,25 @@ server <- function(input, output, session) {
   ###################################
   # Dynamic Dropdowns 
   output$resp_disease_dropdown_overview <- renderUI({
+    req(input$subsetVarOverview)
     if (input$subsetVarOverview == "Respiratory Disease") {
-      selectInput("diseaseSubsets", "Select Disease(s):",
-                  choices = c("CF", "CF-Asthma", "Chronic obstructive pulmonary disease",
-                              "Congenital lung abnormality", "Interstitial lung disease", 
-                              "None", "Other/mixed", "PCD"), 
-                  multiple = TRUE)
+      selectInput(
+        inputId  = "diseaseSubsets",
+        label    = "Select Disease(s):",
+        choices  = c(
+          "Cystic fibrosis",
+          "Asthma",
+          "Primary Ciliary Dyskinesia (PCD)",
+          "Ex-prematurity (< 35 weeks gestation)",
+          "Bone marrow transplant (with or without pulmonary cGvHD)",
+          "Bronchiolitis obliterans (non-BMT-associated)",
+          "Chronic obstructive pulmonary disease",
+          "Interstitial lung disease",
+          "Congenital lung abnormality",
+          "Other"
+        ),
+        multiple = TRUE
+      )
     }
   })
   

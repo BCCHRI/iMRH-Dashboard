@@ -31,90 +31,161 @@ ProcessBaselineData <- function(data, data_dict_path){
     read_csv(data_dict_path) |> 
     janitor::clean_names() |> 
     filter(form_name %in% c("demographics","medical_history")) 
-  
-  # look at baseline data 
-  baseline_data <- 
-    data |> 
+
+  # define maps
+  sex_map <- c("1" = "Male", "2" = "Female", "0" = "Not collected")
+  ethnicity_map <- c(
+    "1" = "Caucasian",
+    "2" = "African American",
+    "3" = "North East Asian",
+    "4" = "South East Asian",
+    "5" = "Other/Mixed",
+    "6" = "Not collected"
+  )
+  smoking_map <- c(
+    "1" = "Not collected",
+    "2" = "Current smoker",
+    "3" = "Ex-smoker",
+    "4" = "Never-smoker",
+    "0" = "Not collected"
+  )
+  second_hand_smoke_map <- c("0" = "No", "1" = "Yes", "2" = "Not collected")
+  category_map <- c("1" = "Healthy Control", "2" = "Respiratory Disease")
+  pancreatic_status_map <- c("1" = "Sufficient", "2" = "Insufficient")
+
+  # (If you want to recode resp_disease later, fill this in similarly)
+  resp_disease_map <- c(
+    "0"   = "None",
+    "99"  = "Other/mixed",
+    "1"   = "Congenital lung abnormality",
+    "2"   = "Interstitial lung disease",
+    "3"   = "Interstitial lung disease",
+    "4"   = "Chronic obstructive pulmonary disease",
+    "5"   = "Chronic obstructive pulmonary disease",
+    "6"   = "PCD",
+    "7"   = "CF",
+    "8"   = "CF-Asthma"
+  )
+
+  # Pack your maps into a named list for easier iteration
+  mapping_list <- list(
+    sex                 = sex_map,
+    ethnicity           = ethnicity_map,
+    smoking             = smoking_map,
+    second_hand_smoke   = second_hand_smoke_map,
+    category            = category_map,
+    pancreatic_status   = pancreatic_status_map
+  )
+
+  # 3) Build the baseline_data pipeline
+  baseline_data <- data |> 
+    # keep only the baseline arm
     filter(redcap_event_name == "baseline_data_arm_1") |> 
-    select(record_id,contains(baseline_vars$variable_field_name)) |> 
-    mutate(across(c(dysplasia_dx, ild_biopsy, ild_biopsy_report, pcd_emicroscopy, emicroscopy_report, 
-                    pcd_hsvm, hsvm_report, pcd_nasal_no, nasal_no_report, p_cgvhd),
-                  ~ case_when(
-                    .x == 1 ~ "Yes",
-                    .x == 0 ~ "No",
-                    TRUE ~ NA
-                  ))) |> 
-    select(record_id,
-           mob,yob,
-           sex,ethnicity,
-           smoking,second_hand_smoke,
-           category,contains("resp_disease_cat"),
-           cf_allele_1,cf_allele_2,
-           pancreatic_status) |> 
-    mutate(
-      sex = factor(sex,
-                   labels = c("Male","Female")),
-      ethnicity = factor(ethnicity,
-                         labels = c("Caucasian","African American",
-                                    "North East Asian", "South East Asian",
-                                    "Other/Mixed","Not collected")),
-      smoking = factor(smoking,
-                       labels = c("Not collected","Current smoker",
-                                  "Ex-smoker","Never-smoker")),
-      second_hand_smoke = factor(second_hand_smoke,
-                                 labels = c("No","Yes","Not collected")),
-      category = factor(category,
-                        labels = c("Healthy Control",
-                                   "Respiratory Disease")),
-    ) |> 
-    rowwise() |> 
-    mutate(combined_resp_disease_cat = str_c(
-      resp_disease_cat___1 * 1,
-      resp_disease_cat___2 * 2,
-      resp_disease_cat___3 * 3,
-      resp_disease_cat___4 * 4,
-      resp_disease_cat___5 * 5,
-      resp_disease_cat___6 * 6,
-      resp_disease_cat___7 * 7,
-      resp_disease_cat___8 * 8,
-      resp_disease_cat___9 * 9,
-      resp_disease_cat___99 * 99,
-      sep = ",", collapse = NULL
+    # pull in only your variables of interest
+    select(record_id, contains(baseline_vars$variable_field_name)) |> 
+    # 3a) Turn all the _dx / _report flags into Yes/No
+    mutate(across(
+      c(dysplasia_dx, ild_biopsy, ild_biopsy_report,
+        pcd_emicroscopy, emicroscopy_report,
+        pcd_hsvm, hsvm_report,
+        pcd_nasal_no, nasal_no_report,
+        p_cgvhd),
+      ~ case_when(
+          .x == 1 ~ "Yes",
+          .x == 0 ~ "No",
+          TRUE     ~ NA_character_
+        )
     )) |> 
-    ungroup() |> 
-    mutate(resp_disease = factor(combined_resp_disease_cat,
-                                 labels = c("None","Other/mixed",
-                                            "Congenital lung abnormality",
-                                            rep("Interstitial lung disease",2),
-                                            rep("Chronic obstructive pulmonary disease",2),
-                                            "PCD","CF","CF-Asthma")),
-           pancreatic_status = factor(pancreatic_status,
-                                      labels = c("Sufficient",
-                                                 "Insufficient")),
-           genotype1_clean = 
-             ifelse(str_detect(cf_allele_1, regex("f508", ignore_case = TRUE)),
-                    "F508del", cf_allele_1),
-           genotype2_clean = 
-             ifelse(str_detect(cf_allele_2, regex("f508", ignore_case = TRUE)),
-                    "F508del", cf_allele_2),
-           genotype =
-             case_when(genotype1_clean == "F508del" & genotype2_clean == "F508del" ~ "Two copies F508del", 
-                       (genotype1_clean == "F508del" & genotype2_clean != "F508del") | 
-                         (genotype1_clean != "F508del" & genotype2_clean == "F508del") ~  "One copy F508del",
-                       genotype1_clean != "F508del" & genotype2_clean != "F508del" ~ "No copies F508del", 
-                       is.na(genotype1_clean) & is.na(genotype2_clean) ~ "Unknown",
-                       TRUE ~ NA),
-           est_dob = case_when(
-             !is.na(mob) & !is.na(yob) ~ paste0("15-",mob,"-",yob),
-             is.na(mob) & !is.na(yob) ~ paste0("15-","06-","-",yob),
-             is.na(mob) & is.na(yob) ~ NA
-           ), 
-           record_id = as.character(record_id)) |> 
-    select(-contains("resp_disease_cat"),
-           -contains("cf_allele"),
-           -contains("clean"))
-  
-  return(baseline_data)
+    # 3b) keep only the columns we actually want for the final dataset
+    select(
+      record_id, mob, yob,
+      names(mapping_list),
+      cf_allele_1, cf_allele_2,
+      pancreatic_status
+    ) |> 
+    # 3c) apply all maps in one go
+    mutate(
+      across(
+        names(mapping_list),
+        ~ factor(
+            as.character(.x),
+            levels = names(mapping_list[[cur_column()]]),
+            labels = mapping_list[[cur_column()]]
+          )
+      ),
+      # 3f) clean up the CF‐allele fields into genotype categories
+      genotype1_clean = if_else(
+        str_detect(cf_allele_1, regex("f508", ignore_case = TRUE)),
+        "F508del", cf_allele_1
+      ),
+      genotype2_clean = if_else(
+        str_detect(cf_allele_2, regex("f508", ignore_case = TRUE)),
+        "F508del", cf_allele_2
+      ),
+      genotype = case_when(
+        genotype1_clean == "F508del" & genotype2_clean == "F508del" ~ "Two copies F508del",
+        xor(genotype1_clean == "F508del", genotype2_clean == "F508del") ~ "One copy F508del",
+        genotype1_clean != "F508del" & genotype2_clean != "F508del" ~ "No copies F508del",
+        is.na(genotype1_clean) & is.na(genotype2_clean)         ~ "Unknown",
+        TRUE                                                    ~ NA_character_
+      ),
+      
+      # 3g) estimate a “middle‐of‐month” DOB string
+      est_dob = case_when(
+        !is.na(mob) & !is.na(yob) ~ paste0("15-", mob, "-", yob),
+        is.na(mob)  & !is.na(yob) ~ paste0("15-06-",   yob),
+        TRUE                     ~ NA_character_
+      ),
+      
+      # ensure record_id stays character
+      record_id = as.character(record_id)
+    ) |> 
+    # 4) drop intermediate helper columns
+    select(
+      -starts_with("cf_allele"),
+      -ends_with("_clean")
+    )
+
+    # 1) your code → label map
+  resp_disease_map <- c(
+    "1"  = "Cystic fibrosis",
+    "2"  = "Asthma",
+    "3"  = "Primary Ciliary Dyskinesia (PCD)",
+    "4"  = "Ex-prematurity (< 35 weeks gestation)",
+    "5"  = "Bone marrow transplant (with or without pulmonary cGvHD)",
+    "6"  = "Bronchiolitis obliterans (non-BMT-associated)",
+    "7"  = "Chronic obstructive pulmonary disease",
+    "8"  = "Interstitial lung disease",
+    "9"  = "Congenital lung abnormality",
+    "99" = "Other"
+  )
+
+  # 2) the flag columns
+  resp_cols <- paste0("resp_disease_cat___", c(1:9, 99))
+
+  # 3) build a little table of record_id → combined labels
+  baseline_resp <- data |> 
+    select(record_id, all_of(resp_cols)) %>%
+    pivot_longer(
+      cols      = all_of(resp_cols),
+      names_to  = "flag",
+      values_to = "v"
+    ) |> 
+    filter(v == 1) |> 
+    mutate(
+      code  = str_remove(flag, "resp_disease_cat___"),
+      label = resp_disease_map[code],
+      record_id = as.character(record_id)
+    ) |> 
+    group_by(record_id) |> 
+    summarise(
+      resp_disease  = str_c(label, collapse = "; "),
+      .groups = "drop"
+    )
+
+  baseline_data_combined <- left_join(baseline_data,baseline_resp,by="record_id") |> 
+    mutate(resp_disease  = replace_na(resp_disease, "None"))
+  return(baseline_data_combined)
 }
 
 #' Process and export scan data
