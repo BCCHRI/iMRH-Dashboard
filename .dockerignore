@@ -1,4 +1,5 @@
 **/.Rhistory
 **/.RData
 **/.Rproj.user
-src\iMRHToken
+src/iMRHToken
+src/config/credentials.yaml

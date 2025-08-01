@@ -1,9 +1,17 @@
-version: '3.8'
+version: "3.8"
 
 services:
   imrh_dashboard:
-    image: imrh_shiny:latest  
+    build: .
+    image: imrh_shiny:latest
     container_name: imrh_dashboard
     restart: always
     ports:
-      - "3838:3838" 
+      - "3838:3838"
+
+    working_dir: /home/app/src
+
+    # mount the token file at runtime (host:project/src/iMRHToken → container:/home/app/src/iMRHToken)
+    volumes:
+      - ./src/iMRHToken:/home/app/src/iMRHToken:ro
+      - ./src/config/credentials.yaml:/home/app/src/config/credentials.yaml:ro

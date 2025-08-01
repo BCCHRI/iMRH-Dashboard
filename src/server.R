@@ -11,13 +11,30 @@ library(yaml)
 library(stringr)
 source('utils/utils.R')
 source("utils/init_sql_db.R")
+#####################################
+library(shinymanager)
 
+# 1) load & assemble credentials from YAML
+creds_yaml <- yaml::read_yaml("config/credentials.yaml")$credentials
+credentials <- do.call(
+  rbind,
+  lapply(creds_yaml, function(x) {
+    data.frame(user = x$user, password = x$password,
+               stringsAsFactors = FALSE)
+  })
+)
 ######################################################################
 init_sql_db()
 ###################################
 
 server <- function(input, output, session) {
   ###################################
+  # Authentication
+    res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
+
+  ##################################
   # Database connection
   con <- create_db_connection()
   
