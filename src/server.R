@@ -70,7 +70,8 @@ server <- function(input, output, session) {
         filter(record_id %in% disease_ids)
     }
     
-    subset_data
+    subset_data |> 
+      select(-contains("est_dob"))
   })
   
   .FinalReactiveData <- reactive({
@@ -105,7 +106,8 @@ server <- function(input, output, session) {
     data <- AutoRefreshData()
     baseline_data <- data$baseline_data
     data_download <- .FinalReactiveData()
-    left_join(data_download, baseline_data, by = "record_id")
+    left_join(data_download, baseline_data, by = "record_id") |> 
+      select(-contains("est_dob"))
   })
   
   ###################################
@@ -179,7 +181,7 @@ server <- function(input, output, session) {
   
   # New output for data explorer
   output$data_explorer_table <- DT::renderDataTable({
-    DT::datatable(.DownloadData(), 
+    DT::datatable(.DownloadData() |> select(-contains("est_dob")), 
                   options = list(pageLength = 10, 
                                  scrollX = TRUE,
                                  scrollY = "500px"),

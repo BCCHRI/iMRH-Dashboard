@@ -184,7 +184,8 @@ ProcessBaselineData <- function(data, data_dict_path){
     )
 
   baseline_data_combined <- left_join(baseline_data,baseline_resp,by="record_id") |> 
-    mutate(resp_disease  = replace_na(resp_disease, "None"))
+    mutate(resp_disease  = replace_na(resp_disease, "None")) |> 
+    select(-mob,-yob)
   return(baseline_data_combined)
 }
 
